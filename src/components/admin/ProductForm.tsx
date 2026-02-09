@@ -14,7 +14,9 @@ interface ProductFormData {
     image: string;
     images: string[];
     featured: boolean;
+    isActive: boolean;
     sizes: string[];
+    stock: string;
 }
 
 interface ProductFormProps {
@@ -37,7 +39,9 @@ export default function ProductForm({ initialData, onSubmit, loading, title }: P
         image: "",
         images: [],
         featured: false,
+        isActive: true,
         sizes: [],
+        stock: "100",
     });
 
     const [newImageUrl, setNewImageUrl] = useState("");
@@ -52,7 +56,9 @@ export default function ProductForm({ initialData, onSubmit, loading, title }: P
                 image: initialData.image || "",
                 images: initialData.images || (initialData.image ? [initialData.image] : []),
                 featured: initialData.featured || false,
+                isActive: initialData.isActive !== undefined ? initialData.isActive : true,
                 sizes: initialData.sizes || [],
+                stock: initialData.stock?.toString() || "0",
             });
         }
     }, [initialData]);
@@ -125,6 +131,7 @@ export default function ProductForm({ initialData, onSubmit, loading, title }: P
         await onSubmit({
             ...formData,
             price: parseFloat(formData.price),
+            stock: parseInt(formData.stock) || 0,
         });
     };
 
@@ -220,7 +227,7 @@ export default function ProductForm({ initialData, onSubmit, loading, title }: P
                         </div>
                     </div>
 
-                    <div className="p-6 bg-muted/30 border border-border space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-muted/30 border border-border p-6 mt-8">
                         <div className="flex items-center justify-between">
                             <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground">Featured status</label>
                             <input
@@ -231,7 +238,16 @@ export default function ProductForm({ initialData, onSubmit, loading, title }: P
                                 className="w-4 h-4 accent-foreground"
                             />
                         </div>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed">Featured products appear on the homepage "Handpicked" collection.</p>
+                        <div className="flex items-center justify-between border-l border-border/50 pl-6">
+                            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground">Publicly Active</label>
+                            <input
+                                type="checkbox"
+                                name="isActive"
+                                checked={formData.isActive}
+                                onChange={handleChange}
+                                className="w-4 h-4 accent-foreground"
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -262,6 +278,18 @@ export default function ProductForm({ initialData, onSubmit, loading, title }: P
                                     className="w-full bg-transparent border-b border-border py-2 outline-none focus:border-primary transition-colors text-lg font-bold"
                                     placeholder="0.00"
                                     value={formData.price}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Inventory Stock</label>
+                                <input
+                                    type="number"
+                                    name="stock"
+                                    required
+                                    className="w-full bg-transparent border-b border-border py-2 outline-none focus:border-primary transition-colors text-lg font-bold"
+                                    placeholder="0"
+                                    value={formData.stock}
                                     onChange={handleChange}
                                 />
                             </div>

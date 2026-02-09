@@ -9,13 +9,11 @@ const FeaturedProducts = async () => {
 
     try {
         const db = getFirestore(app);
-        const q = query(collection(db, "products"), limit(4));
-        const querySnapshot = await getDocs(q);
+        const productsQuery = query(collection(db, "products"), limit(4)); // Standard limit
+        const querySnapshot = await getDocs(productsQuery);
 
-        products = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
+        products = querySnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() as any }));
     } catch (error) {
         console.error("Error fetching featured products:", error);
     }

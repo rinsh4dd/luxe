@@ -5,9 +5,10 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useLuxeToast } from "@/hooks/useLuxeToast";
-import { doc, setDoc, collection, updateDoc, arrayUnion } from "firebase/firestore";
+import { doc, setDoc, collection, updateDoc, arrayUnion, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Button } from "@/components/ui/Button";
+import Breadcrumbs from "@/components/common/Breadcrumbs";
 import { ArrowRight, ShieldCheck, Truck, CreditCard, ChevronDown, MapPin, Loader2, Check } from "lucide-react";
 import { getDocs, query, where } from "firebase/firestore";
 import { useEffect } from "react";
@@ -103,6 +104,7 @@ export default function CheckoutPage() {
 
         const placeOrder = async () => {
             const orderId = `ORD-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+            const orderDocRef = doc(db, "orders", orderId);
             const newOrder = {
                 id: orderId,
                 items: cart,
@@ -113,11 +115,21 @@ export default function CheckoutPage() {
                 createdAt: new Date().toISOString(),
             };
 
-            const orderDocRef = doc(db, "orders", orderId);
-            await setDoc(orderDocRef, {
-                ...newOrder,
-                userId: user.uid
+            // Update stock levels for each item
+            const stockUpdates = cart.map(item => {
+                const prodRef = doc(db, "products", item.productId);
+                return updateDoc(prodRef, {
+                    stock: increment(-item.quantity)
+                });
             });
+
+            await Promise.all([
+                setDoc(orderDocRef, {
+                    ...newOrder,
+                    userId: user.uid
+                }),
+                ...stockUpdates
+            ]);
 
             clearCart();
             setTimeout(() => {
@@ -134,6 +146,7 @@ export default function CheckoutPage() {
 
     return (
         <div className="container mx-auto px-4 lg:px-12 py-24">
+            <Breadcrumbs />
             <div className="mb-16 space-y-2">
                 <h1 className="text-5xl font-serif font-medium tracking-tight text-foreground">Checkout</h1>
                 <p className="text-[10px] text-muted-foreground tracking-[0.4em] uppercase font-bold">Secure Payment (India)</p>

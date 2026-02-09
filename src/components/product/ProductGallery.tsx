@@ -103,10 +103,10 @@ const ProductGallery = ({ images = [] }: { images?: string[] }) => {
                     )}
                 </div>
 
-                {/* Outside Zoom Portal */}
+                {/* Outside Zoom Portal - Priority Boosted */}
                 {isZoomed && (
                     <div
-                        className="fixed md:absolute top-0 right-0 lg:-right-[110%] w-full lg:w-[100%] aspect-square md:aspect-[3/2] lg:aspect-square z-[200] bg-white border border-zinc-200 dark:border-zinc-800 shadow-2xl pointer-events-none hidden md:block animate-in fade-in zoom-in-95 duration-200"
+                        className="fixed md:absolute top-0 right-0 lg:-right-[110%] w-full lg:w-[100%] aspect-square md:aspect-[3/2] lg:aspect-square z-[999] bg-white border border-zinc-200 dark:border-zinc-800 shadow-2xl pointer-events-none hidden md:block animate-in fade-in zoom-in-95 duration-200"
                         style={{
                             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
                         }}

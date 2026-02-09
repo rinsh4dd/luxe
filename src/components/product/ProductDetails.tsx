@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import ProductGallery from "@/components/product/ProductGallery";
+import Breadcrumbs from "@/components/common/Breadcrumbs";
 import { Star, ArrowRight, Heart, Share2, ShieldCheck, Truck, RefreshCcw } from "lucide-react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
@@ -66,10 +67,16 @@ export default function ProductDetails({ id }: { id: string }) {
     if (!product) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-background space-y-6">
-                <h1 className="text-3xl font-serif">Product not found.</h1>
+                <div className="w-16 h-16 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center mb-4">
+                    <span className="text-xl font-serif text-muted-foreground">?</span>
+                </div>
+                <h1 className="text-2xl font-serif tracking-tight text-center">
+                    Piece not found <br />
+                    <span className="text-muted-foreground uppercase text-[10px] font-bold tracking-[0.4em]">The requested item does not exist</span>
+                </h1>
                 <Link href="/shop">
-                    <Button variant="outline" className="rounded-none uppercase tracking-widest text-[10px] py-6 px-12 border-foreground">
-                        Back to Collection
+                    <Button variant="outline" className="rounded-none uppercase tracking-widest text-[10px] py-6 px-12 border-foreground mt-8">
+                        View Collection
                     </Button>
                 </Link>
             </div>
@@ -78,7 +85,8 @@ export default function ProductDetails({ id }: { id: string }) {
 
     const alreadyInCart = isInCart(id);
     const images = product.images || [product.image || "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1000&auto=format&fit=crop"];
-    const sizes = product.sizes || ["XS", "S", "M", "L", "XL"];
+    const sizes = product.sizes || [];
+    const hasSizes = sizes.length > 0;
 
     const handleAddToCart = () => {
         if (!user) {
@@ -86,7 +94,8 @@ export default function ProductDetails({ id }: { id: string }) {
             return;
         }
 
-        if (!selectedSize) {
+        // If product has sizes, and none selected, error
+        if (hasSizes && !selectedSize) {
             error("Size Required", "Please select a size to proceed.");
             return;
         }
@@ -96,15 +105,16 @@ export default function ProductDetails({ id }: { id: string }) {
             name: product.name,
             price: product.price,
             image: images[0],
-            size: selectedSize,
+            size: hasSizes ? selectedSize : "Standard",
             quantity: 1,
         });
-        success("Added to Collection", `${product.name} (Size: ${selectedSize}) is now in your cart.`);
+        success("Added to Collection", `${product.name} ${hasSizes ? `(Size: ${selectedSize})` : ""} is now in your cart.`);
     };
 
     return (
         <div className="min-h-screen bg-background pt-32 pb-24" ref={detailsRef}>
             <div className="container mx-auto px-4 lg:px-12 max-w-7xl">
+                <Breadcrumbs />
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24">
 
                     {/* Gallery Section */}
@@ -153,35 +163,47 @@ export default function ProductDetails({ id }: { id: string }) {
                             </p>
                         </div>
 
-                        {/* Size Selection */}
-                        <div className="space-y-6 luxe-animate">
-                            <div className="flex justify-between items-end">
-                                <h3 className="text-[10px] font-bold uppercase tracking-[0.4em]">Select Size</h3>
-                                <button className="text-[8px] font-bold uppercase tracking-[0.2em] underline underline-offset-4 text-muted-foreground hover:text-primary transition-colors">
-                                    Size Guide
-                                </button>
-                            </div>
-                            <div className="flex flex-wrap gap-4">
-                                {sizes.map((size: string) => (
-                                    <button
-                                        key={size}
-                                        onClick={() => setSelectedSize(size)}
-                                        className={`
-                                            w-14 h-14 border transition-all duration-300 flex items-center justify-center text-[10px] font-bold
-                                            ${selectedSize === size
-                                                ? "bg-foreground text-background border-foreground scale-110"
-                                                : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"}
-                                        `}
-                                    >
-                                        {size}
+                        {/* Size Selection - Conditional */}
+                        {hasSizes && (
+                            <div className="space-y-6 luxe-animate">
+                                <div className="flex justify-between items-end">
+                                    <h3 className="text-[10px] font-bold uppercase tracking-[0.4em]">Select Size</h3>
+                                    <button className="text-[8px] font-bold uppercase tracking-[0.2em] underline underline-offset-4 text-muted-foreground hover:text-primary transition-colors">
+                                        Size Guide
                                     </button>
-                                ))}
+                                </div>
+                                <div className="flex flex-wrap gap-4">
+                                    {sizes.map((size: string) => (
+                                        <button
+                                            key={size}
+                                            onClick={() => setSelectedSize(size)}
+                                            className={`
+                                                w-14 h-14 border transition-all duration-300 flex items-center justify-center text-[10px] font-bold
+                                                ${selectedSize === size
+                                                    ? "bg-foreground text-background border-foreground scale-110"
+                                                    : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"}
+                                            `}
+                                        >
+                                            {size}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Actions */}
                         <div className="flex flex-col gap-4 pt-8 border-t border-border luxe-animate">
-                            {alreadyInCart ? (
+                            {!product.isActive && (
+                                <div className="p-6 bg-zinc-900 border border-white/10 space-y-2 luxe-animate">
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-white">Currently Unavailable</p>
+                                    <p className="text-[8px] text-zinc-400 leading-relaxed uppercase tracking-widest">
+                                        This specific piece is currently being curated and is not available for acquisition.
+                                        Please check back soon or explore our other collections.
+                                    </p>
+                                </div>
+                            )}
+
+                            {product.isActive && alreadyInCart ? (
                                 <Link href="/cart" className="w-full">
                                     <Button className="w-full h-16 rounded-none bg-primary text-primary-foreground font-bold uppercase tracking-[0.4em] text-[10px] flex items-center justify-center gap-4 group">
                                         Check out Now
@@ -190,10 +212,15 @@ export default function ProductDetails({ id }: { id: string }) {
                                 </Link>
                             ) : (
                                 <Button
-                                    className="w-full h-16 rounded-none bg-foreground text-background font-bold uppercase tracking-[0.4em] text-[10px] hover:bg-foreground/90 transition-all hover:scale-[1.01]"
+                                    className="w-full h-16 rounded-none bg-foreground text-background font-bold uppercase tracking-[0.4em] text-[10px] hover:bg-foreground/90 transition-all hover:scale-[1.01] disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
                                     onClick={handleAddToCart}
+                                    disabled={!product.isActive || product.stock <= 0}
                                 >
-                                    Add to Collection
+                                    {!product.isActive
+                                        ? "Piece Unavailable"
+                                        : product.stock <= 0
+                                            ? "Sold Out"
+                                            : "Add to Collection"}
                                 </Button>
                             )}
                         </div>

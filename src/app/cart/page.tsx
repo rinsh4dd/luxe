@@ -2,7 +2,9 @@
 
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
+import Breadcrumbs from "@/components/common/Breadcrumbs";
 import Link from "next/link";
 import { Trash2, Plus, Minus, Heart, ArrowRight } from "lucide-react";
 import { useLuxeToast } from "@/hooks/useLuxeToast";
@@ -11,6 +13,40 @@ export default function CartPage() {
     const { cart, removeFromCart, updateQuantity, subtotal } = useCart();
     const { addToWishlist } = useWishlist();
     const { success } = useLuxeToast();
+    const [activeProducts, setActiveProducts] = useState<Record<string, boolean>>({});
+    const [verifying, setVerifying] = useState(true);
+
+    useEffect(() => {
+        const verifyAvailability = async () => {
+            if (cart.length === 0) {
+                setVerifying(false);
+                return;
+            }
+
+            try {
+                const { getFirestore, doc, getDoc } = await import("firebase/firestore/lite");
+                const { app } = await import("@/lib/firebase");
+                const db = getFirestore(app);
+
+                const statusMap: Record<string, boolean> = {};
+                await Promise.all(cart.map(async (item) => {
+                    if (statusMap[item.productId] !== undefined) return;
+                    const docSnap = await getDoc(doc(db, "products", item.productId));
+                    statusMap[item.productId] = docSnap.exists() && docSnap.data().isActive !== false;
+                }));
+
+                setActiveProducts(statusMap);
+            } catch (error) {
+                console.error("Error verifying cart availability:", error);
+            } finally {
+                setVerifying(false);
+            }
+        };
+
+        verifyAvailability();
+    }, [cart]);
+
+    const activeCartItems = cart.filter(item => activeProducts[item.productId] !== false);
 
     const handleMoveToWishlist = (item: any) => {
         addToWishlist({
@@ -23,7 +59,18 @@ export default function CartPage() {
         success("Saved to Wishlist", `${item.name} moved to your wishlist.`);
     };
 
-    if (cart.length === 0) {
+    const activeSubtotal = activeCartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+
+    if (verifying) {
+        return (
+            <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-4">
+                <div className="w-12 h-12 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground">Verifying Availability...</p>
+            </div>
+        );
+    }
+
+    if (activeCartItems.length === 0) {
         return (
             <div className="min-h-[70vh] flex flex-col items-center justify-center space-y-10 text-center px-4">
                 <div className="space-y-4">
@@ -41,6 +88,7 @@ export default function CartPage() {
 
     return (
         <div className="container mx-auto px-4 lg:px-12 py-24">
+            <Breadcrumbs />
             <div className="mb-16 space-y-2">
                 <h1 className="text-5xl font-serif font-medium tracking-tight text-foreground">Shopping Bag</h1>
                 <p className="text-[10px] text-muted-foreground tracking-[0.4em] uppercase font-bold">Your Selected Items</p>
@@ -125,7 +173,7 @@ export default function CartPage() {
                         <div className="space-y-5">
                             <div className="flex justify-between items-center text-xs font-medium">
                                 <span className="uppercase tracking-widest text-muted-foreground">Subtotal</span>
-                                <span className="font-bold tracking-tight">₹{subtotal.toLocaleString()}</span>
+                                <span className="font-bold tracking-tight">₹{activeSubtotal.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between items-center text-xs font-medium">
                                 <span className="uppercase tracking-widest text-muted-foreground">Logistics</span>
@@ -136,7 +184,7 @@ export default function CartPage() {
                         <div className="border-t border-border pt-8 space-y-10">
                             <div className="flex justify-between items-end">
                                 <span className="uppercase text-[9px] tracking-[0.4em] font-bold text-muted-foreground mb-1">Total Bill</span>
-                                <span className="text-3xl font-serif font-bold tracking-tighter">₹{subtotal.toLocaleString()}</span>
+                                <span className="text-3xl font-serif font-bold tracking-tighter">₹{activeSubtotal.toLocaleString()}</span>
                             </div>
 
                             <Link href="/checkout" className="block">

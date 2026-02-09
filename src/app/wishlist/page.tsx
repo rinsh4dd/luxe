@@ -4,6 +4,7 @@ import { useWishlist } from "@/context/WishlistContext";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
 import ProductCard from "@/components/common/ProductCard";
+import Breadcrumbs from "@/components/common/Breadcrumbs";
 
 export default function WishlistPage() {
     const { wishlist, loading } = useWishlist();
@@ -33,6 +34,7 @@ export default function WishlistPage() {
 
     return (
         <div className="container mx-auto px-4 py-24">
+            <Breadcrumbs />
             <div className="mb-16 space-y-2">
                 <h1 className="text-5xl font-serif font-medium tracking-tight text-foreground">Wishlist</h1>
                 <p className="text-sm text-muted-foreground tracking-[0.3em] uppercase">Your Private Selection</p>
@@ -47,7 +49,9 @@ export default function WishlistPage() {
                             name: item.name,
                             price: item.price,
                             image: item.image,
-                            category: "Saved Item"
+                            category: "Saved Item",
+                            stock: 1, // Default to available for UI
+                            isActive: true
                         }}
                     />
                 ))}

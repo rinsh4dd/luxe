@@ -2,6 +2,7 @@
 
 import ProductFilters from "@/components/shop/ProductFilters";
 import ProductCard from "@/components/common/ProductCard";
+import Breadcrumbs from "@/components/common/Breadcrumbs";
 import { useEffect, useState } from "react";
 
 export default function ShopPage() {
@@ -27,10 +28,8 @@ export default function ShopPage() {
 
                 const querySnapshot = await getDocs(collection(db, "products"));
 
-                const productsData = querySnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
+                const productsData = querySnapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() as any }));
 
                 setAllProducts(productsData);
                 setFilteredProducts(productsData); // Initial load
@@ -103,6 +102,7 @@ export default function ShopPage() {
 
     return (
         <div className="container mx-auto px-4 py-12 lg:py-24">
+            <Breadcrumbs />
             <div className="flex flex-col md:flex-row justify-between items-baseline mb-16 gap-8 border-b border-border pb-8">
                 <div className="space-y-2">
                     <h1 className="text-5xl lg:text-7xl font-serif font-medium tracking-tight text-foreground">Shop</h1>
