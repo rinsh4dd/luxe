@@ -107,9 +107,10 @@ export default function AddProductPage() {
                             onChange={handleChange}
                         >
                             <option value="">Select Category</option>
-                            <option value="T-Shirts">T-Shirts</option>
+                            <option value="Men">Men</option>
+                            <option value="Women">Women</option>
+                            <option value="Unisex">Unisex</option>
                             <option value="Accessories">Accessories</option>
-                            <option value="Outerwear">Outerwear</option>
                         </select>
                     </div>
                 </div>

@@ -5,8 +5,18 @@ import ProductCard from "@/components/shop/ProductCard";
 import { useEffect, useState } from "react";
 
 export default function ShopPage() {
-    const [products, setProducts] = useState<any[]>([]);
+    const [allProducts, setAllProducts] = useState<any[]>([]);
+    const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Filter States
+    const [selectedCategory, setSelectedCategory] = useState("All");
+    const [priceRange, setPriceRange] = useState([0, 1000]);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 9;
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -21,8 +31,9 @@ export default function ShopPage() {
                     id: doc.id,
                     ...doc.data()
                 }));
-                // Only show unblocked products if that field existed, but simpler for now
-                setProducts(productsData);
+
+                setAllProducts(productsData);
+                setFilteredProducts(productsData); // Initial load
             } catch (error) {
                 console.error("Error fetching products:", error);
             } finally {
@@ -32,6 +43,43 @@ export default function ShopPage() {
 
         fetchProducts();
     }, []);
+
+    // Filter Logic
+    useEffect(() => {
+        let result = allProducts;
+
+        // 1. Search Filter
+        if (searchQuery) {
+            result = result.filter(product =>
+                product.name.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+
+        // 2. Category Filter
+        if (selectedCategory !== "All") {
+            result = result.filter(product =>
+                product.category === selectedCategory
+            );
+        }
+
+        // 3. Price Filter
+        if (priceRange) {
+            result = result.filter(product =>
+                product.price >= priceRange[0] && product.price <= priceRange[1]
+            );
+        }
+
+        setFilteredProducts(result);
+        setCurrentPage(1); // Reset to page 1 on filter change
+    }, [allProducts, searchQuery, selectedCategory, priceRange]);
+
+    // Pagination Logic
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+
+    const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
     if (loading) {
         return (
@@ -58,22 +106,65 @@ export default function ShopPage() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
                 {/* Filters Sidebar */}
                 <aside className="hidden lg:block lg:col-span-1">
-                    <ProductFilters />
+                    <ProductFilters
+                        selectedCategory={selectedCategory}
+                        setSelectedCategory={setSelectedCategory}
+                        priceRange={priceRange}
+                        setPriceRange={setPriceRange}
+                        searchQuery={searchQuery}
+                        setSearchQuery={setSearchQuery}
+                    />
                 </aside>
 
                 {/* Product Grid */}
                 <div className="lg:col-span-3">
-                    {products.length === 0 ? (
+                    {filteredProducts.length === 0 ? (
                         <div className="text-center py-20 bg-muted/50 rounded-lg border border-border">
                             <h3 className="text-lg font-medium">No products found</h3>
-                            <p className="text-muted-foreground mt-2">Check back later or add products in the admin panel.</p>
+                            <p className="text-muted-foreground mt-2">Try adjusting your filters or search query.</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {products.map((product) => (
-                                <ProductCard key={product.id} product={product} />
-                            ))}
-                        </div>
+                        <>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                                {currentItems.map((product) => (
+                                    <ProductCard key={product.id} product={product} />
+                                ))}
+                            </div>
+
+                            {/* Pagination Controls */}
+                            {totalPages > 1 && (
+                                <div className="flex justify-center mt-12 space-x-2">
+                                    <button
+                                        onClick={() => paginate(currentPage - 1)}
+                                        disabled={currentPage === 1}
+                                        className="px-4 py-2 border border-border rounded-md hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Previous
+                                    </button>
+
+                                    {Array.from({ length: totalPages }, (_, i) => (
+                                        <button
+                                            key={i + 1}
+                                            onClick={() => paginate(i + 1)}
+                                            className={`px-4 py-2 border border-border rounded-md transition-colors ${currentPage === i + 1
+                                                    ? "bg-primary text-primary-foreground font-bold"
+                                                    : "hover:bg-muted"
+                                                }`}
+                                        >
+                                            {i + 1}
+                                        </button>
+                                    ))}
+
+                                    <button
+                                        onClick={() => paginate(currentPage + 1)}
+                                        disabled={currentPage === totalPages}
+                                        className="px-4 py-2 border border-border rounded-md hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </div>
