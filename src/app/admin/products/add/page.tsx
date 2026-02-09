@@ -16,6 +16,7 @@ export default function AddProductPage() {
         category: "",
         image: "", // Simple URL input for now
         featured: false,
+        sizes: [] as string[],
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -42,7 +43,7 @@ export default function AddProductPage() {
                 category: formData.category,
                 image: formData.image,
                 featured: formData.featured,
-                sizes: ["XS", "S", "M", "L", "XL"], // Default sizes for now
+                sizes: formData.sizes.length > 0 ? formData.sizes : ["XS", "S", "M", "L", "XL"], // Use selected or default
                 createdAt: new Date().toISOString(),
                 rating: 0,
                 reviews: 0
@@ -97,21 +98,46 @@ export default function AddProductPage() {
                             onChange={handleChange}
                         />
                     </div>
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Category</label>
-                        <select
-                            name="category"
-                            required
-                            className="w-full bg-background border border-border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none"
-                            value={formData.category}
-                            onChange={handleChange}
-                        >
-                            <option value="">Select Category</option>
-                            <option value="Men">Men</option>
-                            <option value="Women">Women</option>
-                            <option value="Unisex">Unisex</option>
-                            <option value="Accessories">Accessories</option>
-                        </select>
+                    <div className="grid grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Category</label>
+                            <select
+                                name="category"
+                                required
+                                className="w-full bg-background border border-border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none"
+                                value={formData.category}
+                                onChange={handleChange}
+                            >
+                                <option value="">Select Category</option>
+                                <option value="Men">Men</option>
+                                <option value="Women">Women</option>
+                                <option value="Unisex">Unisex</option>
+                                <option value="Accessories">Accessories</option>
+                            </select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Sizes</label>
+                            <div className="flex flex-wrap gap-2">
+                                {["XS", "S", "M", "L", "XL", "XXL"].map((size) => (
+                                    <label key={size} className="flex items-center space-x-2 cursor-pointer border border-border rounded-md px-3 py-1 hover:bg-muted transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.sizes.includes(size)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setFormData(prev => ({ ...prev, sizes: [...prev.sizes, size] }));
+                                                } else {
+                                                    setFormData(prev => ({ ...prev, sizes: prev.sizes.filter(s => s !== size) }));
+                                                }
+                                            }}
+                                            className="w-4 h-4 text-primary rounded border-border focus:ring-primary accent-primary"
+                                        />
+                                        <span className="text-sm">{size}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
 

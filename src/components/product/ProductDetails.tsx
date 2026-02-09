@@ -4,48 +4,81 @@ import { Button } from "@/components/ui/Button";
 import ProductGallery from "@/components/product/ProductGallery";
 import { Star } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
+import { toast } from "sonner";
+import { useEffect } from "react";
 
 export default function ProductDetails({ id }: { id: string }) {
-    // Static Product Data (Local Fallback)
-    const product = {
-        id: id,
-        name: "Classic Minimalism Tee",
-        price: 45,
-        description: "Experience the ultimate comfort with our Classic Minimalism Tee. Crafted from 100% organic cotton, this tee features a relaxed fit and a timeless design that pairs perfectly with any outfit.",
-        rating: 4.8,
-        reviews: 124,
-        images: ["/product-1.jpg", "/product-2.jpg", "/product-3.jpg"], // Ensure these exist or use placeholders if needed
-        sizes: ["XS", "S", "M", "L", "XL"],
-    };
+    const [product, setProduct] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
 
+    const { user } = useAuth();
     const { addToCart } = useCart();
     const [selectedSize, setSelectedSize] = useState("");
+
+    useEffect(() => {
+        const fetchProduct = async () => {
+            try {
+                const { getFirestore, doc, getDoc } = await import("firebase/firestore/lite");
+                const { app } = await import("@/lib/firebase");
+                const db = getFirestore(app);
+                const docRef = doc(db, "products", id);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    setProduct({ id: docSnap.id, ...docSnap.data() });
+                } else {
+                    console.log("No such product!");
+                }
+            } catch (error) {
+                console.error("Error fetching product:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (id) {
+            fetchProduct();
+        }
+    }, [id]);
+
+    if (loading) {
+        return <div className="container mx-auto px-4 py-12 text-center">Loading...</div>;
+    }
+
+    if (!product) {
+        return <div className="container mx-auto px-4 py-12 text-center">Product not found.</div>;
+    }
 
     // No useEffect needed for static data
 
     const handleAddToCart = () => {
+        if (!user) {
+            toast.error("Please login to add items to cart");
+            return;
+        }
+
         if (!selectedSize) {
-            alert("Please select a size");
+            toast.error("Please select a size");
             return;
         }
 
         addToCart({
-            productId: product.id,
+            productId: product.id.toString(),
             name: product.name,
             price: product.price,
-            image: product.images[0] || 'bg-gray-200',
+            image: product.image || (product.images && product.images[0]) || 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1000&auto=format&fit=crop',
             size: selectedSize,
             quantity: 1,
         });
-        alert("Added to cart!");
+        toast.success("Added to cart!");
     };
 
-    // Loading state is not really needed for static data, but existing structure might expect it.
-    // Simplifying to render directly.
-
-    const sizes = product.sizes;
-    const images = product.images;
+    // Use product.images or fallback to single image wrapped in array
+    const images = product.images || [product.image || "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1000&auto=format&fit=crop"];
+    // Use product.sizes or default
+    const sizes = product.sizes || ["XS", "S", "M", "L", "XL"];
 
     return (
         <div className="container mx-auto px-4 py-12">

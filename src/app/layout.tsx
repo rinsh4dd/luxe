@@ -8,6 +8,7 @@ import Footer from "@/components/layout/Footer";
 import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import StrictRouteGuard from "@/components/auth/StrictRouteGuard";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -41,6 +42,7 @@ export default function RootLayout({
                                         </div>
                                     </WishlistProvider>
                                 </CartProvider>
+                                <Toaster position="top-center" richColors />
                             </SmoothScroll>
                         </ThemeProvider>
                     </StrictRouteGuard>

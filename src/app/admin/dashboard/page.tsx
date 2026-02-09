@@ -1,15 +1,43 @@
 "use client";
 
 import { Users, ShoppingBag, DollarSign, TrendingUp } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export default function AdminDashboard() {
     // Placeholder stats
-    const stats = [
-        { label: "Total Revenue", value: "$45,231.89", icon: DollarSign, change: "+20.1% from last month" },
-        { label: "Active Orders", value: "+2350", icon: ShoppingBag, change: "+180.1% from last month" },
-        { label: "Total Products", value: "12", icon: ShoppingBag, change: "+19% from last month" },
-        { label: "Active Now", value: "+573", icon: TrendingUp, change: "+201 since last hour" },
-    ];
+    const [stats, setStats] = useState([
+        { label: "Total Revenue", value: "$0.00", icon: DollarSign, change: "Coming Soon" },
+        { label: "Active Orders", value: "0", icon: ShoppingBag, change: "Coming Soon" },
+        { label: "Total Products", value: "...", icon: ShoppingBag, change: "Loading..." },
+        { label: "Total Users", value: "...", icon: Users, change: "Loading..." },
+    ]);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const { getFirestore, collection, getDocs } = await import("firebase/firestore/lite");
+                const { app } = await import("@/lib/firebase");
+                const db = getFirestore(app);
+
+                const productsColl = collection(db, "products");
+                const usersColl = collection(db, "users");
+
+                const productsSnapshot = await getDocs(productsColl);
+                const usersSnapshot = await getDocs(usersColl);
+
+                setStats(prev => [
+                    prev[0],
+                    prev[1],
+                    { ...prev[2], value: productsSnapshot.size.toString(), change: "Updated just now" },
+                    { ...prev[3], value: usersSnapshot.size.toString(), change: "Updated just now" }
+                ]);
+            } catch (error) {
+                console.error("Error fetching stats:", error);
+            }
+        };
+
+        fetchStats();
+    }, []);
 
     return (
         <div className="space-y-8">
@@ -42,18 +70,10 @@ export default function AdminDashboard() {
                 <div className="col-span-4 bg-card rounded-xl border border-border p-6 shadow-sm">
                     <div className="mb-4">
                         <h3 className="font-semibold text-lg">Recent Sales</h3>
-                        <p className="text-sm text-muted-foreground">You made 265 sales this month.</p>
+                        <p className="text-sm text-muted-foreground">Sales data coming soon.</p>
                     </div>
-                    <div className="space-y-4">
-                        {[1, 2, 3, 4, 5].map((_, i) => (
-                            <div key={i} className="flex items-center">
-                                <div className="ml-4 space-y-1">
-                                    <p className="text-sm font-medium leading-none">Olivia Martin</p>
-                                    <p className="text-sm text-muted-foreground">olivia.martin@email.com</p>
-                                </div>
-                                <div className="ml-auto font-medium">+$1,999.00</div>
-                            </div>
-                        ))}
+                    <div className="h-[200px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded-lg border border-dashed border-border">
+                        No recent sales to display.
                     </div>
                 </div>
             </div>
