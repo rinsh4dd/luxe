@@ -1,21 +1,24 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import ProductGallery from "@/components/product/ProductGallery";
-import { Star } from "lucide-react";
+import { Star, ArrowRight, Heart, Share2, ShieldCheck, Truck, RefreshCcw } from "lucide-react";
+import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { useState } from "react";
-import { toast } from "sonner";
-import { useEffect } from "react";
+import { useLuxeToast } from "@/hooks/useLuxeToast";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 
 export default function ProductDetails({ id }: { id: string }) {
     const [product, setProduct] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-
     const { user } = useAuth();
-    const { addToCart } = useCart();
+    const { addToCart, isInCart } = useCart();
+    const { success, error, info } = useLuxeToast();
     const [selectedSize, setSelectedSize] = useState("");
+    const detailsRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -43,24 +46,48 @@ export default function ProductDetails({ id }: { id: string }) {
         }
     }, [id]);
 
+    useGSAP(() => {
+        if (!loading && product && detailsRef.current) {
+            gsap.fromTo(".luxe-animate",
+                { opacity: 0, y: 30, filter: "blur(10px)" },
+                { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.8, ease: "expo.out", stagger: 0.1 }
+            );
+        }
+    }, [loading, product]);
+
     if (loading) {
-        return <div className="container mx-auto px-4 py-12 text-center">Loading...</div>;
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+            </div>
+        );
     }
 
     if (!product) {
-        return <div className="container mx-auto px-4 py-12 text-center">Product not found.</div>;
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-background space-y-6">
+                <h1 className="text-3xl font-serif">Product not found.</h1>
+                <Link href="/shop">
+                    <Button variant="outline" className="rounded-none uppercase tracking-widest text-[10px] py-6 px-12 border-foreground">
+                        Back to Collection
+                    </Button>
+                </Link>
+            </div>
+        );
     }
 
-    // No useEffect needed for static data
+    const alreadyInCart = isInCart(id);
+    const images = product.images || [product.image || "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1000&auto=format&fit=crop"];
+    const sizes = product.sizes || ["XS", "S", "M", "L", "XL"];
 
     const handleAddToCart = () => {
         if (!user) {
-            toast.error("Please login to add items to cart");
+            info("Login Required", "Please login to add this piece to your collection.");
             return;
         }
 
         if (!selectedSize) {
-            toast.error("Please select a size");
+            error("Size Required", "Please select a size to proceed.");
             return;
         }
 
@@ -68,69 +95,130 @@ export default function ProductDetails({ id }: { id: string }) {
             productId: product.id.toString(),
             name: product.name,
             price: product.price,
-            image: product.image || (product.images && product.images[0]) || 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1000&auto=format&fit=crop',
+            image: images[0],
             size: selectedSize,
             quantity: 1,
         });
-        toast.success("Added to cart!");
+        success("Added to Collection", `${product.name} (Size: ${selectedSize}) is now in your cart.`);
     };
 
-    // Use product.images or fallback to single image wrapped in array
-    const images = product.images || [product.image || "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1000&auto=format&fit=crop"];
-    // Use product.sizes or default
-    const sizes = product.sizes || ["XS", "S", "M", "L", "XL"];
-
     return (
-        <div className="container mx-auto px-4 py-12">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                <ProductGallery images={images} />
+        <div className="min-h-screen bg-background pt-32 pb-24" ref={detailsRef}>
+            <div className="container mx-auto px-4 lg:px-12 max-w-7xl">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24">
 
-                <div className="space-y-8">
-                    <div>
-                        <h1 className="text-3xl lg:text-4xl font-bold tracking-tighter mb-2 text-foreground">{product.name}</h1>
-                        <div className="flex items-center space-x-2 text-sm">
-                            <div className="flex text-yellow-500">
-                                <Star className="w-4 h-4 fill-current" />
-                                <Star className="w-4 h-4 fill-current" />
-                                <Star className="w-4 h-4 fill-current" />
-                                <Star className="w-4 h-4 fill-current" />
-                                <Star className="w-4 h-4 fill-current" />
+                    {/* Gallery Section */}
+                    <div className="lg:col-span-7 luxe-animate">
+                        <ProductGallery images={images} />
+                    </div>
+
+                    {/* Details Section */}
+                    <div className="lg:col-span-5 space-y-12">
+                        <div className="space-y-6 luxe-animate">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-primary">
+                                    {product.category || "Exclusive Collection"}
+                                </span>
+                                <div className="flex gap-4">
+                                    <button className="p-2 hover:bg-muted transition-colors rounded-full" aria-label="Share">
+                                        <Share2 className="w-4 h-4 text-muted-foreground" />
+                                    </button>
+                                    <button className="p-2 hover:bg-muted transition-colors rounded-full" aria-label="Add to Wishlist">
+                                        <Heart className="w-4 h-4 text-muted-foreground" />
+                                    </button>
+                                </div>
                             </div>
-                            <span className="text-muted-foreground">({product.reviews || 0} reviews)</span>
+
+                            <h1 className="text-5xl md:text-6xl font-serif font-medium tracking-tighter leading-[0.9] text-foreground">
+                                {product.name}<span className="text-primary">.</span>
+                            </h1>
+
+                            <div className="flex items-center gap-6">
+                                <div className="flex text-yellow-500">
+                                    {[...Array(5)].map((_, i) => (
+                                        <Star key={i} className="w-3 h-3 fill-current" />
+                                    ))}
+                                </div>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                    {product.reviews || 48} Curated Reviews
+                                </span>
+                            </div>
+
+                            <p className="text-4xl font-serif font-bold text-foreground">
+                                ₹{product.price.toLocaleString()}
+                            </p>
+
+                            <p className="text-sm text-muted-foreground leading-relaxed font-medium uppercase tracking-tight max-w-md">
+                                {product.description || "A masterfully crafted piece designed for those who appreciate the finer things. Made with sustainable processes and premium materials."}
+                            </p>
                         </div>
-                    </div>
 
-                    <p className="text-2xl font-medium text-primary">${product.price}</p>
-
-                    <p className="text-muted-foreground leading-relaxed">
-                        {product.description}
-                    </p>
-
-                    <div>
-                        <h3 className="font-medium mb-3 text-foreground">Select Size</h3>
-                        <div className="flex flex-wrap gap-3">
-                            {sizes.map((size: string) => (
-                                <button
-                                    key={size}
-                                    onClick={() => setSelectedSize(size)}
-                                    className={`w-12 h-12 rounded-full border flex items-center justify-center text-sm font-bold transition-all ${selectedSize === size ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary hover:text-foreground"}`}
-                                >
-                                    {size}
+                        {/* Size Selection */}
+                        <div className="space-y-6 luxe-animate">
+                            <div className="flex justify-between items-end">
+                                <h3 className="text-[10px] font-bold uppercase tracking-[0.4em]">Select Size</h3>
+                                <button className="text-[8px] font-bold uppercase tracking-[0.2em] underline underline-offset-4 text-muted-foreground hover:text-primary transition-colors">
+                                    Size Guide
                                 </button>
-                            ))}
+                            </div>
+                            <div className="flex flex-wrap gap-4">
+                                {sizes.map((size: string) => (
+                                    <button
+                                        key={size}
+                                        onClick={() => setSelectedSize(size)}
+                                        className={`
+                                            w-14 h-14 border transition-all duration-300 flex items-center justify-center text-[10px] font-bold
+                                            ${selectedSize === size
+                                                ? "bg-foreground text-background border-foreground scale-110"
+                                                : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"}
+                                        `}
+                                    >
+                                        {size}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="flex gap-4 pt-4 border-t border-border">
-                        <Button size="lg" className="flex-1 w-full rounded-full font-bold" onClick={handleAddToCart}>Add to Cart</Button>
-                        <Button size="lg" variant="outline" className="flex-none rounded-full">
-                            <Star className="w-5 h-5" />
-                        </Button>
-                    </div>
+                        {/* Actions */}
+                        <div className="flex flex-col gap-4 pt-8 border-t border-border luxe-animate">
+                            {alreadyInCart ? (
+                                <Link href="/cart" className="w-full">
+                                    <Button className="w-full h-16 rounded-none bg-primary text-primary-foreground font-bold uppercase tracking-[0.4em] text-[10px] flex items-center justify-center gap-4 group">
+                                        Check out Now
+                                        <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-2" />
+                                    </Button>
+                                </Link>
+                            ) : (
+                                <Button
+                                    className="w-full h-16 rounded-none bg-foreground text-background font-bold uppercase tracking-[0.4em] text-[10px] hover:bg-foreground/90 transition-all hover:scale-[1.01]"
+                                    onClick={handleAddToCart}
+                                >
+                                    Add to Collection
+                                </Button>
+                            )}
+                        </div>
 
-                    <div className="text-xs text-muted-foreground space-y-1 pt-4">
-                        <p>Free shipping on orders over $100</p>
-                        <p>30-day return policy</p>
+                        {/* Professional Perks */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 luxe-animate">
+                            <div className="flex items-start gap-4 p-4 border border-border/50 bg-muted/5">
+                                <Truck className="w-4 h-4 text-primary mt-1" />
+                                <div>
+                                    <p className="text-[8px] font-bold uppercase tracking-[0.2em]">Priority Shipping</p>
+                                    <p className="text-[8px] text-muted-foreground uppercase font-medium mt-1">Free Delivery over ₹2,000</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-4 p-4 border border-border/50 bg-muted/5">
+                                <RefreshCcw className="w-4 h-4 text-primary mt-1" />
+                                <div>
+                                    <p className="text-[8px] font-bold uppercase tracking-[0.2em]">Signature Return</p>
+                                    <p className="text-[8px] text-muted-foreground uppercase font-medium mt-1">30 Days Return Policy</p>
+                                </div>
+                            </div>
+                            <div className="md:col-span-2 flex items-center justify-center gap-3 py-4 bg-muted/10 border border-dashed border-border">
+                                <ShieldCheck className="w-3 h-3 text-green-600" />
+                                <span className="text-[8px] font-bold uppercase tracking-[0.4em]">100% Authenticity Guaranteed</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

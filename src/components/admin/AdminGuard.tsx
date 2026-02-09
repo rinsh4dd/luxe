@@ -2,11 +2,13 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { useLuxeToast } from "@/hooks/useLuxeToast";
 import { useEffect } from "react";
 
 export default function AdminGuard({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
     const router = useRouter();
+    const { error } = useLuxeToast();
 
     useEffect(() => {
         if (!loading) {
@@ -14,7 +16,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
                 router.push("/login?redirect=/admin");
             } else if ((user as any).role !== "admin") {
                 // For now, nice alert, eventually a dedicated 403 page
-                alert("Access Denied: Admin privileges required.");
+                error("Access Denied", "Admin privileges required.");
                 router.push("/");
             }
         }

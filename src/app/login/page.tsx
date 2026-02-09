@@ -5,8 +5,11 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import NextImage from "next/image";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
+import { Eye, EyeOff } from "lucide-react";
+import { useLuxeToast } from "@/hooks/useLuxeToast";
 
 import GuestGuard from "@/components/auth/GuestGuard";
 
@@ -21,12 +24,14 @@ export default function LoginPage() {
 function LoginPageContent() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
+    const { promise } = useLuxeToast();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        try {
+
+        const loginPromise = async () => {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
@@ -52,60 +57,103 @@ function LoginPageContent() {
                 router.push('/shop'); // Fallback
             }
 
-            // Clear form
-            setEmail("");
-            setPassword("");
-        } catch (error: any) {
-            console.error("Login failed:", error);
-            setError("Failed to login. Please check your credentials.");
-            alert("Login failed: " + error.message);
-        }
+            return user.displayName || "User";
+        };
+
+        promise(loginPromise(), {
+            loading: 'Authenticating...',
+            success: (name) => `Welcome back.`,
+            error: (err: any) => {
+                console.error("Login Error", err);
+                return "Invalid credentials.";
+            },
+        });
     };
 
     return (
-        <div className="min-h-[80vh] flex items-center justify-center bg-background px-4">
-            <div className="max-w-md w-full space-y-8 p-8 bg-card rounded-xl shadow-lg border border-border">
-                <div className="text-center">
-                    <h2 className="mt-6 text-3xl font-extrabold text-foreground">Welcome Back</h2>
-                    <p className="mt-2 text-sm text-muted-foreground">Sign in to your account</p>
+        <div className="min-h-screen flex">
+            {/* Left Side - Editorial Image (Hidden on Mobile) */}
+            <div className="hidden lg:block w-1/2 relative bg-black">
+                <NextImage
+                    src="https://images.unsplash.com/photo-1507086189048-b9a73d10c852?q=80&w=2670&auto=format&fit=crop" // Elegant suit/fashion image
+                    alt="Editorial Fashion"
+                    fill
+                    className="object-cover opacity-80"
+                    priority
+                    sizes="50vw"
+                />
+                <div className="absolute inset-0 bg-black/20" />
+                <div className="absolute bottom-12 left-12 text-white p-8">
+                    <p className="text-sm tracking-[0.3em] uppercase mb-4 opacity-80">Collection 2024</p>
+                    <h2 className="text-5xl font-serif italic">"Elegance is the only beauty that never fades."</h2>
                 </div>
+            </div>
 
-                {error && <div className="text-red-500 text-sm text-center">{error}</div>}
-
-                <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-                    <div className="rounded-md shadow-sm space-y-4">
-                        <div>
-                            <input
-                                type="email"
-                                required
-                                className="appearance-none rounded-full relative block w-full px-4 py-3 border border-border bg-background placeholder-muted-foreground text-foreground focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-                                placeholder="Email address"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <input
-                                type="password"
-                                required
-                                className="appearance-none rounded-full relative block w-full px-4 py-3 border border-border bg-background placeholder-muted-foreground text-foreground focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-                                placeholder="Password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                            />
-                        </div>
+            {/* Right Side - Minimalist Form */}
+            <div className="w-full lg:w-1/2 flex items-center justify-center bg-background px-8 md:px-16 lg:px-24">
+                <div className="max-w-md w-full space-y-12">
+                    <div className="text-center space-y-4">
+                        <h2 className="text-4xl font-serif font-medium tracking-tight text-foreground">Welcome Back</h2>
+                        <p className="text-sm text-muted-foreground tracking-wide uppercase">Please enter your details</p>
                     </div>
 
-                    <Button type="submit" className="w-full rounded-full bg-primary hover:bg-primary/90 text-black font-bold">
-                        Sign In
-                    </Button>
+                    <form className="space-y-8" onSubmit={handleLogin}>
+                        <div className="space-y-6">
+                            <div className="group">
+                                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-2">Email Address</label>
+                                <input
+                                    type="email"
+                                    required
+                                    className="w-full bg-transparent border-b border-border py-2 outline-none focus:border-primary transition-colors text-foreground placeholder:text-muted-foreground/30"
+                                    placeholder="john@example.com"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                />
+                            </div>
+                            <div className="group relative">
+                                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-2">Password</label>
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    required
+                                    className="w-full bg-transparent border-b border-border py-2 outline-none focus:border-primary transition-colors text-foreground placeholder:text-muted-foreground/30 pr-10"
+                                    placeholder="••••••••"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-0 bottom-2 text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
+                        </div>
 
-                    <div className="text-sm text-center">
-                        <Link href="/register" className="font-medium text-muted-foreground hover:text-primary transition-colors">
-                            Don't have an account? Sign up
-                        </Link>
-                    </div>
-                </form>
+                        <div className="flex items-center justify-between text-xs">
+                            <label className="flex items-center space-x-2 cursor-pointer group">
+                                <input type="checkbox" className="w-3 h-3 rounded-sm border-border text-primary focus:ring-0 bg-transparent" />
+                                <span className="text-muted-foreground group-hover:text-foreground transition-colors tracking-wide">Remember me</span>
+                            </label>
+                            <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors tracking-wide border-b border-transparent hover:border-foreground">
+                                Forgot password?
+                            </Link>
+                        </div>
+
+                        <Button
+                            type="submit"
+                            className="w-full rounded-none bg-foreground text-background hover:bg-foreground/90 h-12 text-xs uppercase tracking-[0.2em] font-bold transition-all"
+                        >
+                            Sign In
+                        </Button>
+
+                        <div className="text-center pt-4">
+                            <Link href="/register" className="text-xs text-muted-foreground hover:text-foreground transition-colors tracking-wide">
+                                NEW TO LUXE? <span className="underline underline-offset-4 decoration-1">CREATE AN ACCOUNT</span>
+                            </Link>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     );

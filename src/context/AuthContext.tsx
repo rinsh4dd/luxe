@@ -4,23 +4,30 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { User, onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
+import { useLuxeToast } from "@/hooks/useLuxeToast";
 
 interface AuthContextType {
     user: User | null;
     loading: boolean;
+    userData: any;
     logout: () => void;
+    updateProfileData: (data: { name?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
     user: null,
     loading: true,
+    userData: null,
     logout: () => { },
+    updateProfileData: async () => { },
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
+    const [userData, setUserData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
+    const { success, error, info } = useLuxeToast();
 
     const logout = async () => {
         // Set isLoggedIn to false on logout
@@ -36,7 +43,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
         await auth.signOut();
         setUser(null);
+        setUserData(null);
+        success("Logged out successfully");
         router.push('/');
+    };
+
+    const updateProfileData = async (data: { name?: string }) => {
+        if (!user) return;
+        try {
+            const { getFirestore, doc, updateDoc } = await import("firebase/firestore/lite");
+            const { app } = await import("@/lib/firebase");
+            const db = getFirestore(app);
+            await updateDoc(doc(db, "users", user.uid), data);
+            setUserData((prev: any) => ({ ...prev, ...data }));
+            success("Profile Updated", "Your changes have been saved.");
+        } catch (e) {
+            console.error("Error updating profile", e);
+            error("Update Failed", "Could not save profile changes.");
+            throw e;
+        }
     };
 
     useEffect(() => {
@@ -57,7 +82,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                         if (userData.isBlocked) {
                             await auth.signOut();
                             setUser(null);
-                            alert("Your account has been blocked. Please contact support.");
+                            error("Account Access Denied", "Your account has been blocked. Please contact support.");
                             setLoading(false);
                             return;
                         }
@@ -68,6 +93,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                         // Update isLoggedIn status (Best effort, since Lite doesn't support offline persistence as well)
                         // Note: updateDoc might fail in Lite if rules are strict, but we enabled them.
                         await updateDoc(userDocRef, { isLoggedIn: true });
+                        setUserData(userData);
                     }
                 } catch (e) {
                     console.error("Error fetching/updating user data", e);
@@ -83,7 +109,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 
     return (
-        <AuthContext.Provider value={{ user, loading, logout }}>
+        <AuthContext.Provider value={{ user, loading, userData, logout, updateProfileData }}>
             {children}
         </AuthContext.Provider>
     );

@@ -36,8 +36,8 @@ const ProductCard = ({ product }: { product: Product }) => {
     };
 
     return (
-        <div className="group relative bg-card rounded-md p-4 transition-all duration-300 ease-out hover:shadow-lg hover:-translate-y-1">
-            <div className={`aspect-[3/4] w-full overflow-hidden rounded-md shadow-sm mb-4 relative bg-muted`}>
+        <div className="group relative bg-card rounded-md p-3 md:p-4 transition-all duration-300 ease-out hover:shadow-lg hover:-translate-y-1 h-full flex flex-col">
+            <div className={`aspect-[3/4] w-full overflow-hidden rounded-md shadow-sm mb-3 relative bg-muted`}>
                 <img
                     src={product.image || "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1000&auto=format&fit=crop"}
                     alt={product.name}
@@ -47,21 +47,24 @@ const ProductCard = ({ product }: { product: Product }) => {
                 {/* Overlay */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
 
-                {/* Play Button Style Add to Cart */}
+                {/* Play Button Style Add to Cart - Always visible on mobile (bottom-right), hover effect on desktop */}
                 <button
                     onClick={handleAddToCart}
-                    className="absolute bottom-4 right-4 p-3 bg-primary text-black rounded-full shadow-xl translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 z-10 flex items-center justify-center"
+                    className="absolute bottom-2 right-2 md:bottom-4 md:right-4 p-2 md:p-3 bg-primary text-black rounded-full shadow-xl md:translate-y-4 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 transition-all duration-300 hover:scale-110 z-10 flex items-center justify-center active:scale-95"
+                    aria-label="Add to cart"
                 >
-                    <ShoppingBag className="w-5 h-5 fill-current" />
+                    <ShoppingBag className="w-4 h-4 md:w-5 md:h-5 fill-current" />
                 </button>
             </div>
 
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 flex-grow">
                 <Link href={`/product/${product.id}`} className="block">
-                    <h3 className="text-base font-bold text-foreground truncate group-hover:text-primary transition-colors">{product.name}</h3>
+                    <h3 className="text-sm md:text-base font-bold text-foreground truncate group-hover:text-primary transition-colors">{product.name}</h3>
                 </Link>
-                <p className="text-sm text-muted-foreground line-clamp-1">{product.category}</p>
-                <p className="text-sm font-medium text-foreground mt-1">${product.price}</p>
+                <p className="text-xs md:text-sm text-muted-foreground line-clamp-1">{product.category}</p>
+                <div className="mt-auto pt-1">
+                    <p className="text-sm md:text-base font-medium text-foreground">${product.price}</p>
+                </div>
             </div>
         </div>
     );
